@@ -51,7 +51,7 @@ echo "Installed-Size: ${INSTALLED_SIZE}" >> "${PKG_DIR}/DEBIAN/control"
 
 # Build the .deb
 mkdir -p "${OUTPUT_DIR}"
-dpkg-deb --root-owner-group --build "${PKG_DIR}" "${OUTPUT_DIR}/${DEB_NAME}"
+dpkg-deb --root-owner-group -Zgzip --build "${PKG_DIR}" "${OUTPUT_DIR}/${DEB_NAME}"
 
 echo ""
 echo "Build complete: ${OUTPUT_DIR}/${DEB_NAME}"
