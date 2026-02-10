@@ -27,19 +27,45 @@
   changed_when: false
   failed_when: false
 
+- name: Set version match fact
+  ansible.builtin.set_fact:
+    unifi_on_boot_version_match: >-
+      {{ installed_version.rc == 0 and
+         installed_version.stdout == unifi_on_boot_version }}
+
+# After firmware upgrades, dpkg's database (on persistent storage) may still
+# report the package as installed, but the actual files (service, binary) are
+# gone because the root filesystem was rebuilt. Detect this and force reinstall.
+- name: Check if service file actually exists
+  ansible.builtin.stat:
+    path: /lib/systemd/system/unifi-on-boot.service
+  register: service_file_check
+
 - name: Set install needed fact
   ansible.builtin.set_fact:
     unifi_on_boot_install_needed: >-
-      {{ installed_version.rc != 0 or
-         installed_version.stdout != unifi_on_boot_version }}
+      {{ not unifi_on_boot_version_match or
+         not service_file_check.stat.exists }}
 
 - name: Display current state
   ansible.builtin.debug:
     msg:
       - "Currently installed: {{ installed_version.stdout | default('not installed') }}"
       - "Target version: {{ unifi_on_boot_version }}"
+      - "Service file exists: {{ service_file_check.stat.exists }}"
       - "Install needed: {{ unifi_on_boot_install_needed }}"
   when: unifi_on_boot_debug | bool
+
+# If dpkg thinks it's installed but the files are gone (firmware upgrade),
+# purge the stale database record so apt treats it as a fresh install.
+- name: Purge stale dpkg record after firmware upgrade
+  ansible.builtin.command: dpkg --purge --force-remove-reinstreq unifi-on-boot
+  when:
+    - unifi_on_boot_version_match | bool
+    - not service_file_check.stat.exists
+  register: purge_result
+  changed_when: purge_result.rc == 0
+  failed_when: false
 
 # Download and install
 - name: Install unifi-on-boot
