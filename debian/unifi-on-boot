@@ -35,28 +35,28 @@ while IFS= read -r -d '' entry; do
         log "Executing: ${filename}"
         if "$entry"; then
             log "Success: ${filename}"
-            ((success_count++))
+            success_count=$((success_count + 1))
         else
             rc=$?
             log "Failed: ${filename} (exit code: ${rc})"
-            ((fail_count++))
+            fail_count=$((fail_count + 1))
         fi
-        ((script_count++))
+        script_count=$((script_count + 1))
     elif [[ "$entry" == *.sh ]]; then
         # Non-executable .sh file: source it
         log "Sourcing: ${filename}"
         if (source "$entry"); then
             log "Success: ${filename}"
-            ((success_count++))
+            success_count=$((success_count + 1))
         else
             rc=$?
             log "Failed: ${filename} (exit code: ${rc})"
-            ((fail_count++))
+            fail_count=$((fail_count + 1))
         fi
-        ((script_count++))
+        script_count=$((script_count + 1))
     else
         log "Ignoring: ${filename} (not executable and not .sh)"
-        ((skip_count++))
+        skip_count=$((skip_count + 1))
     fi
 done < <(find -L "$BOOT_DIR" -mindepth 1 -maxdepth 1 -type f -print0 | sort -z)
 
