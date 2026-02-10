@@ -132,7 +132,7 @@ Firmware Upgrade
 
 The package sets up three layers of persistence:
 
-1. **Self-restore service** — Stores `install.sh` and a service file in `/data/unifi-on-boot/` (persistent), with symlinks from `/etc/systemd/system/` that survive in the overlay upper dir across firmware upgrades
+1. **Self-restore service** — Copies `install.sh` and a service file to `/data/unifi-on-boot/` (persistent), and copies the service file into `/etc/systemd/system/` (overlay upper dir). The service file must be a copy, not a symlink to `/data/`, because systemd scans for units before the SSD containing `/data/` is mounted.
 2. **Backup `.deb`** — Copies the `.deb` to `/data/unifi-on-boot/` and also lets `ubnt-dpkg-cache` cache it in `/persistent/dpkg/`
 3. **systemd status** — Saves enable/disable state to `/persistent/dpkg/<distro>/status/` so `restore_pkg_status()` can re-enable the service
 
@@ -172,7 +172,7 @@ Install: `ansible-galaxy install -r requirements.yml`
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `unifi_on_boot_version` | `"1.0.4"` | Version to install from GitHub releases (update to latest) |
+| `unifi_on_boot_version` | `"1.0.5"` | Version to install from GitHub releases (update to latest) |
 | `unifi_on_boot_remove_conflicts` | `true` | Remove `udm-boot`/`udm-boot-2x` if present |
 | `unifi_on_boot_scripts` | `[]` | List of scripts to deploy (see example above) |
 | `unifi_on_boot_run_after_deploy` | `false` | Run on-boot scripts immediately after deploy |

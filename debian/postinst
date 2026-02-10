@@ -96,16 +96,21 @@ setup_self_restore() {
         echo "${PACKAGE_NAME}: WARNING: could not find .deb to backup (self-restore may need Ansible re-deploy)"
     fi
 
-    # Create symlinks in /etc/systemd/system/ (overlay upper dir — survives firmware upgrades)
+    # IMPORTANT: Copy (not symlink!) the service file into /etc/systemd/system/.
+    # This path is on the overlay upper dir, which is always available at boot.
+    # Symlinking to /data/ does NOT work because /data/ is on an SSD that may
+    # not be mounted when systemd scans for units — resulting in "No such file"
+    # and the service never starting.
     local systemd_dir="/etc/systemd/system"
     local wants_dir="${systemd_dir}/multi-user.target.wants"
 
-    # Unit file symlink
-    ln -sf "${DATA_DIR}/${INSTALL_SERVICE_NAME}" "${systemd_dir}/${INSTALL_SERVICE_NAME}" 2>/dev/null || true
+    # Copy unit file directly (overlay upper dir — survives firmware upgrades)
+    cp "${DATA_DIR}/${INSTALL_SERVICE_NAME}" "${systemd_dir}/${INSTALL_SERVICE_NAME}" 2>/dev/null || true
+    chmod 0644 "${systemd_dir}/${INSTALL_SERVICE_NAME}"
 
-    # Enable symlink
+    # Enable: symlink from wants dir to the local copy (NOT to /data/)
     mkdir -p "${wants_dir}"
-    ln -sf "${DATA_DIR}/${INSTALL_SERVICE_NAME}" "${wants_dir}/${INSTALL_SERVICE_NAME}" 2>/dev/null || true
+    ln -sf "${systemd_dir}/${INSTALL_SERVICE_NAME}" "${wants_dir}/${INSTALL_SERVICE_NAME}" 2>/dev/null || true
 
     systemctl daemon-reload
     echo "${PACKAGE_NAME}: self-restore mechanism configured"
