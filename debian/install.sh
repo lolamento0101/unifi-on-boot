@@ -40,12 +40,19 @@ fi
 log "Restoring from: ${DEB}"
 
 # Install the package
-# Note: postinst handles systemctl enable + daemon-reload.
-# Do NOT start the service here — it would run all on_boot.d scripts
-# (including Tailscale) which can disrupt network connectivity.
-# The main service starts later in the same boot via WantedBy=multi-user.target.
+# postinst handles systemctl enable + daemon-reload.
+# We also need to start the main service explicitly because it gets enabled
+# mid-boot after multi-user.target has already evaluated its dependencies.
+# This is safe: install.sh only runs from a systemd service at boot time,
+# not during interactive SSH sessions, so Tailscale restarts won't disrupt anything.
 if dpkg -i "${DEB}"; then
-    log "Package restored successfully (service will start later in boot)"
+    log "Package restored successfully"
+    # Start the main service so on_boot.d scripts run on this boot
+    if systemctl start "${PACKAGE_NAME}.service" 2>/dev/null; then
+        log "Service started — on_boot.d scripts executed"
+    else
+        log "WARNING: Could not start service (scripts will run on next boot)"
+    fi
 else
     log "ERROR: Failed to restore package"
     exit 1

@@ -1,7 +1,6 @@
 [Unit]
 Description=Restore unifi-on-boot after firmware upgrade
 After=local-fs.target
-Before=network-online.target
 RequiresMountsFor=/data
 
 [Service]
