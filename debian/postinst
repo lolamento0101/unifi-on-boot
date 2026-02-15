@@ -137,6 +137,21 @@ case "$1" in
 
         # Ensure on_boot.d directory exists
         mkdir -p /data/on_boot.d
+
+        # Create default shadow gateway configuration
+        if [ ! -f "${DATA_DIR}/shadow.conf" ]; then
+            cat > "${DATA_DIR}/shadow.conf" <<'SHADOWEOF'
+# Shadow gateway sync configuration for unifi-on-boot
+# After running on-boot scripts, unifi-on-boot will rsync /data/on_boot.d/
+# to the shadow gateway so it has an identical set of scripts.
+#
+# Set SHADOW_ENABLED=false to disable shadow gateway sync.
+SHADOW_ENABLED=true
+SHADOW_IP=169.254.254.3
+SHADOW_USER=root
+SHADOWEOF
+            echo "${PACKAGE_NAME}: created default shadow gateway config at ${DATA_DIR}/shadow.conf"
+        fi
         ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

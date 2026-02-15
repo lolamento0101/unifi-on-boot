@@ -111,6 +111,38 @@ cat /var/log/unifi-on-boot.log
 systemctl restart unifi-on-boot
 ```
 
+## Shadow Gateway Sync
+
+For UniFi HA (High Availability) setups, `unifi-on-boot` automatically syncs `/data/on_boot.d/` to the shadow gateway after running all scripts on the primary. This ensures the shadow gateway has an identical set of on-boot scripts.
+
+### How It Works
+
+1. After running all scripts on the primary, the service pings `169.254.254.3` (the shadow gateway link-local IP)
+2. If reachable, it installs `rsync` on both gateways if not already present
+3. Runs `rsync --delete` to ensure the shadow's `/data/on_boot.d/` exactly matches the primary (including removing stale scripts)
+4. Installs `unifi-on-boot` on the shadow if not present (from the backed-up `.deb`)
+5. Runs the on-boot scripts on the shadow with `--skip-shadow` to prevent recursive syncing
+
+### Configuration
+
+Shadow sync is **enabled by default** and configured via `/data/unifi-on-boot/shadow.conf`:
+
+```bash
+# Set SHADOW_ENABLED=false to disable shadow gateway sync
+SHADOW_ENABLED=true
+SHADOW_IP=169.254.254.3
+SHADOW_USER=root
+```
+
+### Disabling Shadow Sync
+
+```bash
+# Edit the config file
+sed -i 's/SHADOW_ENABLED=true/SHADOW_ENABLED=false/' /data/unifi-on-boot/shadow.conf
+```
+
+> **Note:** SSH key-based authentication must be set up between the primary and shadow gateway for sync to work. The primary must be able to `ssh root@169.254.254.3` without a password prompt.
+
 ## How Firmware Upgrade Persistence Works
 
 UniFi firmware upgrades rebuild the root filesystem, wiping all installed packages and systemd services. Ubiquiti's `ubnt-dpkg-restore` only restores packages listed in `/etc/default/ubnt-dpkg-support`, which resets to firmware defaults on every upgrade — so custom packages are excluded.

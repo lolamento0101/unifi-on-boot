@@ -1,6 +1,7 @@
 #!/bin/bash
 # unifi-on-boot: Generic on-boot script runner for UniFi devices
 # Executes scripts from /data/on_boot.d/ in sorted order
+# Optionally syncs /data/on_boot.d/ to shadow gateway via rsync
 # https://github.com/unredacted/unifi-on-boot
 
 set -euo pipefail
@@ -8,11 +9,121 @@ set -euo pipefail
 BOOT_DIR="/data/on_boot.d"
 LOG_FILE="/var/log/unifi-on-boot.log"
 SERVICE_NAME="unifi-on-boot"
+SHADOW_CONF="/data/unifi-on-boot/shadow.conf"
+SKIP_SHADOW=false
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --skip-shadow)
+            SKIP_SHADOW=true
+            shift
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
 
 log() {
     local msg="[$(date '+%Y-%m-%d %H:%M:%S')] [${SERVICE_NAME}] $1"
     echo "$msg"
     echo "$msg" >> "$LOG_FILE"
+}
+
+# Sync /data/on_boot.d/ to shadow gateway via rsync
+sync_shadow_gateway() {
+    if [ "$SKIP_SHADOW" = "true" ]; then
+        return 0
+    fi
+
+    # Load shadow configuration (opt-out: enabled by default)
+    local shadow_enabled="true"
+    local shadow_ip="169.254.254.3"
+    local shadow_user="root"
+
+    if [ -f "$SHADOW_CONF" ]; then
+        # shellcheck source=/dev/null
+        source "$SHADOW_CONF"
+        shadow_enabled="${SHADOW_ENABLED:-true}"
+        shadow_ip="${SHADOW_IP:-169.254.254.3}"
+        shadow_user="${SHADOW_USER:-root}"
+    fi
+
+    if [ "$shadow_enabled" != "true" ]; then
+        log "Shadow gateway sync disabled via ${SHADOW_CONF}"
+        return 0
+    fi
+
+    # Check if shadow gateway is reachable
+    if ! ping -c 1 -W 2 "$shadow_ip" >/dev/null 2>&1; then
+        log "Shadow gateway not detected at ${shadow_ip} (skipping sync)"
+        return 0
+    fi
+
+    log "Shadow gateway detected at ${shadow_ip}, starting sync..."
+
+    # Ensure rsync is installed locally
+    if ! command -v rsync >/dev/null 2>&1; then
+        log "Installing rsync on primary gateway..."
+        if ! DEBIAN_FRONTEND=noninteractive apt-get install -y rsync >/dev/null 2>&1; then
+            log "ERROR: Failed to install rsync on primary, cannot sync to shadow"
+            return 1
+        fi
+    fi
+
+    # Ensure rsync is installed on shadow
+    if ! ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "${shadow_user}@${shadow_ip}" "command -v rsync" >/dev/null 2>&1; then
+        log "Installing rsync on shadow gateway..."
+        if ! ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "${shadow_user}@${shadow_ip}" \
+            "DEBIAN_FRONTEND=noninteractive apt-get update >/dev/null 2>&1 && apt-get install -y rsync >/dev/null 2>&1"; then
+            log "ERROR: Failed to install rsync on shadow gateway, cannot sync"
+            return 1
+        fi
+    fi
+
+    # Sync /data/on_boot.d/ to shadow (--delete ensures exact mirror)
+    log "Syncing /data/on_boot.d/ to shadow gateway..."
+    if rsync -avz --delete -e "ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no" \
+        "${BOOT_DIR}/" "${shadow_user}@${shadow_ip}:${BOOT_DIR}/" 2>&1 | tee -a "$LOG_FILE"; then
+        log "Successfully synced /data/on_boot.d/ to shadow gateway"
+    else
+        log "ERROR: Failed to rsync /data/on_boot.d/ to shadow gateway"
+        return 1
+    fi
+
+    # Ensure unifi-on-boot is installed on shadow
+    if ! ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "${shadow_user}@${shadow_ip}" \
+        "dpkg -l unifi-on-boot 2>/dev/null | grep -q '^ii'" 2>/dev/null; then
+        log "Installing unifi-on-boot on shadow gateway..."
+
+        local deb_path="/data/unifi-on-boot/unifi-on-boot.deb"
+        if [ -f "$deb_path" ]; then
+            if scp -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+                "$deb_path" "${shadow_user}@${shadow_ip}:/tmp/unifi-on-boot.deb" 2>/dev/null && \
+               ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "${shadow_user}@${shadow_ip}" \
+                "dpkg -i /tmp/unifi-on-boot.deb && rm -f /tmp/unifi-on-boot.deb" 2>&1 | tee -a "$LOG_FILE"; then
+                log "Successfully installed unifi-on-boot on shadow gateway"
+            else
+                log "ERROR: Failed to install unifi-on-boot on shadow gateway"
+                return 1
+            fi
+        else
+            log "WARNING: No .deb found at ${deb_path}, cannot install unifi-on-boot on shadow"
+        fi
+    fi
+
+    # Run unifi-on-boot on shadow with --skip-shadow to prevent recursion
+    # Note: we invoke the script directly (not via systemctl) so we can pass --skip-shadow
+    log "Triggering unifi-on-boot on shadow gateway..."
+    if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "${shadow_user}@${shadow_ip}" \
+        "/usr/sbin/unifi-on-boot --skip-shadow" 2>&1 | tee -a "$LOG_FILE"; then
+        log "Shadow gateway sync completed successfully"
+    else
+        log "WARNING: Shadow gateway script execution had errors (scripts may still have run)"
+    fi
+
+    return 0
 }
 
 # Create boot directory if it doesn't exist
@@ -65,5 +176,8 @@ log "Completed: ${script_count} scripts processed (${success_count} succeeded, $
 if [ "$fail_count" -gt 0 ]; then
     log "WARNING: ${fail_count} script(s) failed. Check log for details."
 fi
+
+# Sync to shadow gateway after all scripts have run
+sync_shadow_gateway || log "WARNING: Shadow gateway sync encountered errors"
 
 exit 0
